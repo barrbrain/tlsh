@@ -18,6 +18,7 @@ pub struct TlshBuilder<
     const TLSH_CHECKSUM_LEN: usize,
     const CODE_SIZE: usize,
     const TLSH_STRING_LEN_REQ: usize,
+    const TLSH_BIN_LEN_REQ: usize,
     const MIN_DATA_LENGTH: usize,
 > {
     a_bucket: [u32; BUCKETS],
@@ -31,9 +32,17 @@ impl<
         const TLSH_CHECKSUM_LEN: usize,
         const CODE_SIZE: usize,
         const TLSH_STRING_LEN_REQ: usize,
+        const TLSH_BIN_LEN_REQ: usize,
         const MIN_DATA_LENGTH: usize,
     > Default
-    for TlshBuilder<EFF_BUCKETS, TLSH_CHECKSUM_LEN, CODE_SIZE, TLSH_STRING_LEN_REQ, MIN_DATA_LENGTH>
+    for TlshBuilder<
+        EFF_BUCKETS,
+        TLSH_CHECKSUM_LEN,
+        CODE_SIZE,
+        TLSH_STRING_LEN_REQ,
+        TLSH_BIN_LEN_REQ,
+        MIN_DATA_LENGTH,
+    >
 {
     fn default() -> Self {
         Self::new()
@@ -45,8 +54,17 @@ impl<
         const TLSH_CHECKSUM_LEN: usize,
         const CODE_SIZE: usize,
         const TLSH_STRING_LEN_REQ: usize,
+        const TLSH_BIN_LEN_REQ: usize,
         const MIN_DATA_LENGTH: usize,
-    > TlshBuilder<EFF_BUCKETS, TLSH_CHECKSUM_LEN, CODE_SIZE, TLSH_STRING_LEN_REQ, MIN_DATA_LENGTH>
+    >
+    TlshBuilder<
+        EFF_BUCKETS,
+        TLSH_CHECKSUM_LEN,
+        CODE_SIZE,
+        TLSH_STRING_LEN_REQ,
+        TLSH_BIN_LEN_REQ,
+        MIN_DATA_LENGTH,
+    >
 {
     /// Create a new TLSH builder.
     pub fn new() -> Self {
@@ -73,7 +91,7 @@ impl<
     /// ```
     pub fn build_from(
         data: &[u8],
-    ) -> Option<Tlsh<TLSH_CHECKSUM_LEN, TLSH_STRING_LEN_REQ, CODE_SIZE>> {
+    ) -> Option<Tlsh<TLSH_CHECKSUM_LEN, TLSH_STRING_LEN_REQ, TLSH_BIN_LEN_REQ, CODE_SIZE>> {
         let mut builder = Self::new();
         builder.update(data);
         builder.build()
@@ -164,7 +182,9 @@ impl<
     }
 
     /// Generate a [`Tlsh`] object, or None if the object is not valid.
-    pub fn build(&self) -> Option<Tlsh<TLSH_CHECKSUM_LEN, TLSH_STRING_LEN_REQ, CODE_SIZE>> {
+    pub fn build(
+        &self,
+    ) -> Option<Tlsh<TLSH_CHECKSUM_LEN, TLSH_STRING_LEN_REQ, TLSH_BIN_LEN_REQ, CODE_SIZE>> {
         if self.data_len < MIN_DATA_LENGTH {
             return None;
         }
@@ -223,6 +243,7 @@ impl<
 pub struct Tlsh<
     const TLSH_CHECKSUM_LEN: usize,
     const TLSH_STRING_LEN_REQ: usize,
+    const TLSH_BIN_LEN_REQ: usize,
     const CODE_SIZE: usize,
 > {
     lvalue: u8,
@@ -232,8 +253,12 @@ pub struct Tlsh<
     code: [u8; CODE_SIZE],
 }
 
-impl<const TLSH_CHECKSUM_LEN: usize, const TLSH_STRING_LEN_REQ: usize, const CODE_SIZE: usize>
-    Tlsh<TLSH_CHECKSUM_LEN, TLSH_STRING_LEN_REQ, CODE_SIZE>
+impl<
+        const TLSH_CHECKSUM_LEN: usize,
+        const TLSH_STRING_LEN_REQ: usize,
+        const TLSH_BIN_LEN_REQ: usize,
+        const CODE_SIZE: usize,
+    > Tlsh<TLSH_CHECKSUM_LEN, TLSH_STRING_LEN_REQ, TLSH_BIN_LEN_REQ, CODE_SIZE>
 {
     /// Compute the hash of a TLSH.
     ///
@@ -383,8 +408,12 @@ impl<const TLSH_CHECKSUM_LEN: usize, const TLSH_STRING_LEN_REQ: usize, const COD
 pub struct ParseError;
 
 /// Parse a hash string and build the corresponding `Tlsh` object.
-impl<const TLSH_CHECKSUM_LEN: usize, const TLSH_STRING_LEN_REQ: usize, const CODE_SIZE: usize>
-    FromStr for Tlsh<TLSH_CHECKSUM_LEN, TLSH_STRING_LEN_REQ, CODE_SIZE>
+impl<
+        const TLSH_CHECKSUM_LEN: usize,
+        const TLSH_STRING_LEN_REQ: usize,
+        const TLSH_BIN_LEN_REQ: usize,
+        const CODE_SIZE: usize,
+    > FromStr for Tlsh<TLSH_CHECKSUM_LEN, TLSH_STRING_LEN_REQ, TLSH_BIN_LEN_REQ, CODE_SIZE>
 {
     type Err = ParseError;
 
