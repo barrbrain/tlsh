@@ -51,29 +51,29 @@ const BUCKETS: usize = 256;
 pub use crate::tlsh::{Tlsh, TlshBuilder};
 
 /// Builder with 256 buckets and a 1 byte checksum.
-pub type TlshBuilder256_1 = TlshBuilder<256, 1, 64, 136, 68, 50>;
+pub type TlshBuilder256_1 = TlshBuilder<256, 1, 64, 136, 67, 50>;
 /// TLSH with 256 buckets and a 1 byte checksum.
-pub type Tlsh256_1 = Tlsh<1, 136, 68, 64>;
+pub type Tlsh256_1 = Tlsh<1, 136, 67, 64>;
 
 /// Builder with 128 buckets and a 1 byte checksum.
-pub type TlshBuilder128_1 = TlshBuilder<128, 1, 32, 72, 36, 50>;
+pub type TlshBuilder128_1 = TlshBuilder<128, 1, 32, 72, 35, 50>;
 /// TLSH with 128 buckets and a 1 byte checksum.
-pub type Tlsh128_1 = Tlsh<1, 72, 36, 32>;
+pub type Tlsh128_1 = Tlsh<1, 72, 35, 32>;
 
 /// Builder with 48 buckets and a 1 byte checksum.
-pub type TlshBuilder48_1 = TlshBuilder<48, 1, 12, 32, 16, 10>;
+pub type TlshBuilder48_1 = TlshBuilder<48, 1, 12, 32, 15, 10>;
 /// TLSh with 48 buckets and a 1 byte checksum.
-pub type Tlsh48_1 = Tlsh<1, 32, 16, 12>;
+pub type Tlsh48_1 = Tlsh<1, 32, 15, 12>;
 
 /// Builder with 256 buckets and a 3 bytes checksum.
-pub type TlshBuilder256_3 = TlshBuilder<256, 3, 64, 140, 70, 50>;
+pub type TlshBuilder256_3 = TlshBuilder<256, 3, 64, 140, 69, 50>;
 /// TLSH with 256 buckets and a 3 bytes checksum.
-pub type Tlsh256_3 = Tlsh<3, 140, 70, 64>;
+pub type Tlsh256_3 = Tlsh<3, 140, 69, 64>;
 
 /// Builder with 128 buckets and a 3 bytes checksum.
-pub type TlshBuilder128_3 = TlshBuilder<128, 3, 32, 76, 38, 50>;
+pub type TlshBuilder128_3 = TlshBuilder<128, 3, 32, 76, 37, 50>;
 /// TLSH with 128 buckets and a 3 bytes checksum.
-pub type Tlsh128_3 = Tlsh<3, 76, 38, 32>;
+pub type Tlsh128_3 = Tlsh<3, 76, 37, 32>;
 
 /// Default builder, using 128 buckets and a 1 byte checksum.
 pub type TlshDefaultBuilder = TlshBuilder128_1;

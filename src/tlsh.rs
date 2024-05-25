@@ -297,6 +297,32 @@ impl<
         hash
     }
 
+    /// Packed binary representation of a TLSH.
+    ///
+    /// ```
+    /// let data = b"Lorem ipsum dolor sit amet, consectetur adipiscing elit";
+    /// let tlsh = tlsh2::TlshDefaultBuilder::build_from(data)
+    ///     .expect("should have generated a TLSH");
+    /// assert_eq!(
+    ///     tlsh.binary().as_slice(),
+    ///     b"\x2D\x90\x02\x49\x41\x4E\x0B\xD5\x9A\x46\x50\x3F\x3A\xDA\x80\x2A\xE5\x08\x25\x24\x2B\x25\x90\x56\x1C\xF6\x90\x59\x91\x12\x21\x4C\x05\x15\x56",
+    /// );
+    /// ```
+    pub fn binary(&self) -> [u8; TLSH_BIN_LEN_REQ] {
+        let mut binary = [0; TLSH_BIN_LEN_REQ];
+
+        binary[..TLSH_CHECKSUM_LEN].copy_from_slice(&self.checksum);
+        for b in &mut binary[..TLSH_CHECKSUM_LEN] {
+            *b = swap_byte(*b);
+        }
+        binary[TLSH_CHECKSUM_LEN] = swap_byte(self.lvalue);
+        binary[TLSH_CHECKSUM_LEN + 1] = (self.q1_ratio << 4) | self.q2_ratio;
+        binary[2 + TLSH_CHECKSUM_LEN..].copy_from_slice(&self.code);
+        binary[2 + TLSH_CHECKSUM_LEN..].reverse();
+
+        binary
+    }
+
     /// Compute the difference between two TLSH.
     ///
     /// The len_diff parameter specifies if the file length is to be included in
