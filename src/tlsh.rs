@@ -399,6 +399,92 @@ impl<
         diff
     }
 
+    /// Compute the difference between two TLSH binary representations.
+    ///
+    /// The len_diff parameter specifies if the file length is to be included in
+    /// the difference calculation (len_diff=true) or if it is to be excluded
+    /// (len_diff=false).
+    ///
+    /// In general, the length should be considered in the difference calculation,
+    /// but there could be applications where a part of the adversarial activity
+    /// might be to add a lot of content.
+    /// For example to add 1 million zero bytes at the end of a file. In that case,
+    /// the caller would want to exclude the length from the calculation.
+    ///
+    /// ```
+    /// let data1 = b"Lorem ipsum dolor sit amet, consectetur adipiscing elit";
+    /// let tlsh1 = tlsh2::TlshDefaultBuilder::build_from(data1)
+    ///     .expect("should have generated a TLSH");
+    /// let binary1 = tlsh1.binary();
+    /// let data2 = b"Duis aute irure dolor in reprehenderit in voluptate velit \
+    ///     esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat \
+    ///     cupidatat non proident, sunt in culpa qui officia";
+    /// let tlsh2 = tlsh2::TlshDefaultBuilder::build_from(data2)
+    ///     .expect("should have generated a TLSH");
+    /// let binary2 = tlsh2.binary();
+    ///
+    /// assert_eq!(tlsh2::TlshDefault::diff_binary(&binary1, &binary2, false), 244);
+    /// assert_eq!(tlsh2::TlshDefault::diff_binary(&binary1, &binary2, true), 280);
+    /// ```
+    #[cfg(feature = "diff")]
+    pub fn diff_binary(
+        one: &[u8; TLSH_BIN_LEN_REQ],
+        two: &[u8; TLSH_BIN_LEN_REQ],
+        len_diff: bool,
+    ) -> i32 {
+        use crate::util::{h_distance, mod_diff};
+
+        const LENGTH_MULT: i32 = 12;
+        const QRATIO_MULT: i32 = 12;
+        const RANGE_LVALUE: u32 = 256;
+        const RANGE_QRATIO: u32 = 16;
+
+        let mut diff;
+        if len_diff {
+            let one_lvalue = swap_byte(one[CODE_SIZE + 1]);
+            let two_lvalue = swap_byte(two[CODE_SIZE + 1]);
+            let ldiff = mod_diff(one_lvalue, two_lvalue, RANGE_LVALUE);
+            if ldiff == 0 {
+                diff = 0;
+            } else if ldiff == 1 {
+                diff = 1;
+            } else {
+                diff = ldiff * LENGTH_MULT;
+            }
+        } else {
+            diff = 0;
+        }
+
+        let one_q1_ratio = one[CODE_SIZE] >> 4;
+        let two_q1_ratio = two[CODE_SIZE] >> 4;
+        let q1diff = mod_diff(one_q1_ratio, two_q1_ratio, RANGE_QRATIO);
+        if q1diff <= 1 {
+            diff += q1diff;
+        } else {
+            diff += (q1diff - 1) * QRATIO_MULT;
+        }
+
+        let one_q2_ratio = one[CODE_SIZE] & 0xf;
+        let two_q2_ratio = two[CODE_SIZE] & 0xf;
+        let q2diff = mod_diff(one_q2_ratio, two_q2_ratio, RANGE_QRATIO);
+        if q2diff <= 1 {
+            diff += q2diff;
+        } else {
+            diff += (q2diff - 1) * QRATIO_MULT;
+        }
+
+        for (a, b) in one[CODE_SIZE + 2..].iter().zip(two[CODE_SIZE + 2..].iter()) {
+            if a != b {
+                diff += 1;
+                break;
+            }
+        }
+
+        diff += h_distance(&one[..CODE_SIZE], &two[..CODE_SIZE]);
+
+        diff
+    }
+
     fn from_hash(s: &[u8]) -> Option<Self> {
         if s.len() != TLSH_STRING_LEN_REQ || s[0] != b'T' || s[1] != b'1' {
             return None;
