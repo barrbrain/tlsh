@@ -299,26 +299,28 @@ impl<
 
     /// Packed binary representation of a TLSH.
     ///
+    /// Bytewise reverse of the standard hex representation, excluding the prefix.
+    ///
     /// ```
     /// let data = b"Lorem ipsum dolor sit amet, consectetur adipiscing elit";
     /// let tlsh = tlsh2::TlshDefaultBuilder::build_from(data)
     ///     .expect("should have generated a TLSH");
     /// assert_eq!(
     ///     tlsh.binary().as_slice(),
-    ///     b"\x2D\x90\x02\x49\x41\x4E\x0B\xD5\x9A\x46\x50\x3F\x3A\xDA\x80\x2A\xE5\x08\x25\x24\x2B\x25\x90\x56\x1C\xF6\x90\x59\x91\x12\x21\x4C\x05\x15\x56",
+    ///     b"\x56\x15\x05\x4C\x21\x12\x91\x59\x90\xF6\x1C\x56\x90\x25\x2B\x24\x25\x08\xE5\x2A\x80\xDA\x3A\x3F\x50\x46\x9A\xD5\x0B\x4E\x41\x49\x02\x90\x2D",
     /// );
     /// ```
     pub fn binary(&self) -> [u8; TLSH_BIN_LEN_REQ] {
         let mut binary = [0; TLSH_BIN_LEN_REQ];
 
-        binary[..TLSH_CHECKSUM_LEN].copy_from_slice(&self.checksum);
-        for b in &mut binary[..TLSH_CHECKSUM_LEN] {
+        binary[..CODE_SIZE].copy_from_slice(&self.code);
+        binary[CODE_SIZE] = (self.q1_ratio << 4) | self.q2_ratio;
+        binary[CODE_SIZE + 1] = swap_byte(self.lvalue);
+        binary[CODE_SIZE + 2..].copy_from_slice(&self.checksum);
+        binary[CODE_SIZE + 2..].reverse();
+        for b in &mut binary[CODE_SIZE + 2..] {
             *b = swap_byte(*b);
         }
-        binary[TLSH_CHECKSUM_LEN] = swap_byte(self.lvalue);
-        binary[TLSH_CHECKSUM_LEN + 1] = (self.q1_ratio << 4) | self.q2_ratio;
-        binary[2 + TLSH_CHECKSUM_LEN..].copy_from_slice(&self.code);
-        binary[2 + TLSH_CHECKSUM_LEN..].reverse();
 
         binary
     }
