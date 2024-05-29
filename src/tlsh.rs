@@ -423,8 +423,8 @@ impl<
     ///     .expect("should have generated a TLSH");
     /// let binary2 = tlsh2.binary();
     ///
-    /// assert_eq!(tlsh2::TlshDefault::diff_binary(&binary1, &binary2, false), 244);
-    /// assert_eq!(tlsh2::TlshDefault::diff_binary(&binary1, &binary2, true), 280);
+    /// assert_eq!(tlsh2::TlshDefault::diff_binary(&binary1, &binary2, false), 276);
+    /// assert_eq!(tlsh2::TlshDefault::diff_binary(&binary1, &binary2, true), 312);
     /// ```
     #[cfg(feature = "diff")]
     pub fn diff_binary(
@@ -432,7 +432,7 @@ impl<
         two: &[u8; TLSH_BIN_LEN_REQ],
         len_diff: bool,
     ) -> i32 {
-        use crate::util::{h_distance, mod_diff};
+        use crate::util::{alt_h_distance, mod_diff};
 
         const LENGTH_MULT: i32 = 12;
         const QRATIO_MULT: i32 = 12;
@@ -480,7 +480,7 @@ impl<
             }
         }
 
-        diff += h_distance(&one[..CODE_SIZE], &two[..CODE_SIZE]);
+        diff += alt_h_distance(&one[..CODE_SIZE], &two[..CODE_SIZE]);
 
         diff
     }
