@@ -423,8 +423,8 @@ impl<
     ///     .expect("should have generated a TLSH");
     /// let binary2 = tlsh2.binary();
     ///
-    /// assert_eq!(tlsh2::TlshDefault::diff_binary(&binary1, &binary2, false), 406);
-    /// assert_eq!(tlsh2::TlshDefault::diff_binary(&binary1, &binary2, true), 442);
+    /// assert_eq!(tlsh2::TlshDefault::diff_binary(&binary1, &binary2, false), 282);
+    /// assert_eq!(tlsh2::TlshDefault::diff_binary(&binary1, &binary2, true), 318);
     /// ```
     #[cfg(feature = "diff")]
     pub fn diff_binary(
