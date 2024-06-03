@@ -42,7 +42,7 @@
 #![deny(clippy::cargo)]
 
 mod pearson;
-mod quartile;
+mod quantile;
 mod tlsh;
 #[cfg(feature = "tlshx")]
 mod tlshx;

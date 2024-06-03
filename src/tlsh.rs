@@ -1,7 +1,7 @@
 use core::str::FromStr;
 
 use crate::pearson::{b_mapping, fast_b_mapping};
-use crate::quartile::get_quartiles;
+use crate::quantile::get_quartiles;
 use crate::util::{l_capturing, swap_byte};
 use crate::BUCKETS;
 
