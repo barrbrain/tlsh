@@ -9,11 +9,11 @@ const SLIDING_WND_SIZE: usize = 5;
 
 const RNG_SIZE: usize = SLIDING_WND_SIZE;
 
-/// Builder object, processing streams of bytes to generate [`Tlsh`] objects.
+/// Builder object, processing streams of bytes to generate [`Tlshx`] objects.
 ///
 /// You should never provide your own values for the generics, but instead use the pre-configured
-/// types such as [`crate::TlshBuilder256_1`] or [`crate::TlshBuilder128_3`].
-pub struct TlshBuilder<
+/// types such as [`crate::TlshxBuilder256_1`] or [`crate::TlshxBuilder128_3`].
+pub struct TlshxBuilder<
     const EFF_BUCKETS: usize,
     const TLSH_CHECKSUM_LEN: usize,
     const CODE_SIZE: usize,
@@ -33,7 +33,13 @@ impl<
         const TLSH_STRING_LEN_REQ: usize,
         const MIN_DATA_LENGTH: usize,
     > Default
-    for TlshBuilder<EFF_BUCKETS, TLSH_CHECKSUM_LEN, CODE_SIZE, TLSH_STRING_LEN_REQ, MIN_DATA_LENGTH>
+    for TlshxBuilder<
+        EFF_BUCKETS,
+        TLSH_CHECKSUM_LEN,
+        CODE_SIZE,
+        TLSH_STRING_LEN_REQ,
+        MIN_DATA_LENGTH,
+    >
 {
     fn default() -> Self {
         Self::new()
@@ -46,9 +52,10 @@ impl<
         const CODE_SIZE: usize,
         const TLSH_STRING_LEN_REQ: usize,
         const MIN_DATA_LENGTH: usize,
-    > TlshBuilder<EFF_BUCKETS, TLSH_CHECKSUM_LEN, CODE_SIZE, TLSH_STRING_LEN_REQ, MIN_DATA_LENGTH>
+    >
+    TlshxBuilder<EFF_BUCKETS, TLSH_CHECKSUM_LEN, CODE_SIZE, TLSH_STRING_LEN_REQ, MIN_DATA_LENGTH>
 {
-    /// Create a new TLSH builder.
+    /// Create a new TLSHX builder.
     pub fn new() -> Self {
         Self {
             a_bucket: [0; BUCKETS],
@@ -58,22 +65,22 @@ impl<
         }
     }
 
-    /// Generate a [`Tlsh`] object from a given byte slice.
+    /// Generate a [`Tlshx`] object from a given byte slice.
     ///
-    /// This is a shorthand for building a [`Tlsh`] object from a single
+    /// This is a shorthand for building a [`Tlshx`] object from a single
     /// byte slice, it is equivalent to:
     ///
     /// ```
     /// let data = b"Lorem ipsum dolor sit amet, consectetur adipiscing elit";
-    /// let tlsh = tlsh2::TlshDefaultBuilder::build_from(data);
+    /// let tlsh = tlsh2::TlshxDefaultBuilder::build_from(data);
     /// // equivalent to
-    /// let mut builder = tlsh2::TlshDefaultBuilder::new();
+    /// let mut builder = tlsh2::TlshxDefaultBuilder::new();
     /// builder.update(data);
     /// let tlsh = builder.build();
     /// ```
     pub fn build_from(
         data: &[u8],
-    ) -> Option<Tlsh<TLSH_CHECKSUM_LEN, TLSH_STRING_LEN_REQ, CODE_SIZE>> {
+    ) -> Option<Tlshx<TLSH_CHECKSUM_LEN, TLSH_STRING_LEN_REQ, CODE_SIZE>> {
         let mut builder = Self::new();
         builder.update(data);
         builder.build()
@@ -163,8 +170,8 @@ impl<
         self.data_len += data.len();
     }
 
-    /// Generate a [`Tlsh`] object, or None if the object is not valid.
-    pub fn build(&self) -> Option<Tlsh<TLSH_CHECKSUM_LEN, TLSH_STRING_LEN_REQ, CODE_SIZE>> {
+    /// Generate a [`Tlshx`] object, or None if the object is not valid.
+    pub fn build(&self) -> Option<Tlshx<TLSH_CHECKSUM_LEN, TLSH_STRING_LEN_REQ, CODE_SIZE>> {
         if self.data_len < MIN_DATA_LENGTH {
             return None;
         }
@@ -209,7 +216,7 @@ impl<
         let q1_ratio = (((((q1 * 100) as f32) / (q3 as f32)) as u32) % 16) as u8;
         let q2_ratio = (((((q2 * 100) as f32) / (q3 as f32)) as u32) % 16) as u8;
 
-        Some(Tlsh {
+        Some(Tlshx {
             lvalue,
             q1_ratio,
             q2_ratio,
@@ -219,8 +226,8 @@ impl<
     }
 }
 
-/// TLSH object, from which a hash or a distance can be computed.
-pub struct Tlsh<
+/// TLSHX object, from which a hash or a distance can be computed.
+pub struct Tlshx<
     const TLSH_CHECKSUM_LEN: usize,
     const TLSH_STRING_LEN_REQ: usize,
     const CODE_SIZE: usize,
@@ -233,28 +240,28 @@ pub struct Tlsh<
 }
 
 impl<const TLSH_CHECKSUM_LEN: usize, const TLSH_STRING_LEN_REQ: usize, const CODE_SIZE: usize>
-    Tlsh<TLSH_CHECKSUM_LEN, TLSH_STRING_LEN_REQ, CODE_SIZE>
+    Tlshx<TLSH_CHECKSUM_LEN, TLSH_STRING_LEN_REQ, CODE_SIZE>
 {
-    /// Compute the hash of a TLSH.
+    /// Compute the hash of a TLSHX.
     ///
-    /// The hash is always prefixed by `T1` (`showvers=1` in the original TLSH version).
+    /// The hash is always prefixed by `TX` (`showvers=X` in the original TLSH version).
     /// This is due to the no_std implementation and the need to have a fixed-length result.
     /// Use a subslice on the result if you don't need this prefix.
     ///
     /// ```
     /// let data = b"Lorem ipsum dolor sit amet, consectetur adipiscing elit";
-    /// let tlsh = tlsh2::TlshDefaultBuilder::build_from(data)
-    ///     .expect("should have generated a TLSH");
+    /// let tlsh = tlsh2::TlshxDefaultBuilder::build_from(data)
+    ///     .expect("should have generated a TLSHX");
     /// assert_eq!(
     ///     tlsh.hash().as_slice(),
-    ///     b"T12D900249414E0BD59A46503F3ADA802AE50825242B2590561CF690599112214C051556",
+    ///     b"TX2D900249414E0BD59A46503F3ADA802AE50825242B2590561CF690599112214C051556",
     /// );
     /// ```
     pub fn hash(&self) -> [u8; TLSH_STRING_LEN_REQ] {
         let mut hash = [0; TLSH_STRING_LEN_REQ];
 
         hash[0] = b'T';
-        hash[1] = b'1';
+        hash[1] = b'X';
         let mut i = 2;
 
         for k in &self.checksum {
@@ -272,7 +279,7 @@ impl<const TLSH_CHECKSUM_LEN: usize, const TLSH_STRING_LEN_REQ: usize, const COD
         hash
     }
 
-    /// Compute the difference between two TLSH.
+    /// Compute the difference between two TLSHX.
     ///
     /// The len_diff parameter specifies if the file length is to be included in
     /// the difference calculation (len_diff=true) or if it is to be excluded
@@ -286,13 +293,13 @@ impl<const TLSH_CHECKSUM_LEN: usize, const TLSH_STRING_LEN_REQ: usize, const COD
     ///
     /// ```
     /// let data1 = b"Lorem ipsum dolor sit amet, consectetur adipiscing elit";
-    /// let tlsh1 = tlsh2::TlshDefaultBuilder::build_from(data1)
-    ///     .expect("should have generated a TLSH");
+    /// let tlsh1 = tlsh2::TlshxDefaultBuilder::build_from(data1)
+    ///     .expect("should have generated a TLSHX");
     /// let data2 = b"Duis aute irure dolor in reprehenderit in voluptate velit \
     ///     esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat \
     ///     cupidatat non proident, sunt in culpa qui officia";
-    /// let tlsh2 = tlsh2::TlshDefaultBuilder::build_from(data2)
-    ///     .expect("should have generated a TLSH");
+    /// let tlsh2 = tlsh2::TlshxDefaultBuilder::build_from(data2)
+    ///     .expect("should have generated a TLSHX");
     ///
     /// assert_eq!(tlsh1.diff(&tlsh2, false), 244);
     /// assert_eq!(tlsh1.diff(&tlsh2, true), 280);
@@ -347,7 +354,7 @@ impl<const TLSH_CHECKSUM_LEN: usize, const TLSH_STRING_LEN_REQ: usize, const COD
     }
 
     fn from_hash(s: &[u8]) -> Option<Self> {
-        if s.len() != TLSH_STRING_LEN_REQ || s[0] != b'T' || s[1] != b'1' {
+        if s.len() != TLSH_STRING_LEN_REQ || s[0] != b'T' || s[1] != b'X' {
             return None;
         }
 
@@ -378,50 +385,15 @@ impl<const TLSH_CHECKSUM_LEN: usize, const TLSH_STRING_LEN_REQ: usize, const COD
     }
 }
 
-/// Error returned when failing to convert a hash string to a `Tlsh` object.
-#[derive(Debug, PartialEq, Eq)]
-pub struct ParseError;
+use crate::tlsh::{from_hex, to_hex, ParseError};
 
-/// Parse a hash string and build the corresponding `Tlsh` object.
+/// Parse a hash string and build the corresponding `Tlshx` object.
 impl<const TLSH_CHECKSUM_LEN: usize, const TLSH_STRING_LEN_REQ: usize, const CODE_SIZE: usize>
-    FromStr for Tlsh<TLSH_CHECKSUM_LEN, TLSH_STRING_LEN_REQ, CODE_SIZE>
+    FromStr for Tlshx<TLSH_CHECKSUM_LEN, TLSH_STRING_LEN_REQ, CODE_SIZE>
 {
     type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::from_hash(s.as_bytes()).ok_or(ParseError)
     }
-}
-
-pub(crate) fn from_hex(s: &[u8], i: &mut usize) -> Option<u8> {
-    let a = char::from(s[*i]).to_digit(16)?;
-    *i += 1;
-    let b = char::from(s[*i]).to_digit(16)?;
-    *i += 1;
-
-    Some(((a as u8) << 4) | (b as u8))
-}
-
-pub(crate) fn to_hex(s: &mut [u8], s_idx: &mut usize, b: u8) {
-    const HEX_LOOKUP: &[u8] = b"000102030405060708090A0B0C0D0E0F\
-    101112131415161718191A1B1C1D1E1F\
-    202122232425262728292A2B2C2D2E2F\
-    303132333435363738393A3B3C3D3E3F\
-    404142434445464748494A4B4C4D4E4F\
-    505152535455565758595A5B5C5D5E5F\
-    606162636465666768696A6B6C6D6E6F\
-    707172737475767778797A7B7C7D7E7F\
-    808182838485868788898A8B8C8D8E8F\
-    909192939495969798999A9B9C9D9E9F\
-    A0A1A2A3A4A5A6A7A8A9AAABACADAEAF\
-    B0B1B2B3B4B5B6B7B8B9BABBBCBDBEBF\
-    C0C1C2C3C4C5C6C7C8C9CACBCCCDCECF\
-    D0D1D2D3D4D5D6D7D8D9DADBDCDDDEDF\
-    E0E1E2E3E4E5E6E7E8E9EAEBECEDEEEF\
-    F0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF";
-
-    let i = usize::from(b) * 2;
-    s[*s_idx] = HEX_LOOKUP[i];
-    s[*s_idx + 1] = HEX_LOOKUP[i + 1];
-    *s_idx += 2;
 }

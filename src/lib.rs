@@ -44,6 +44,8 @@
 mod pearson;
 mod quartile;
 mod tlsh;
+#[cfg(feature = "tlshx")]
+mod tlshx;
 mod util;
 
 const BUCKETS: usize = 256;
@@ -79,3 +81,20 @@ pub type Tlsh128_3 = Tlsh<3, 76, 32>;
 pub type TlshDefaultBuilder = TlshBuilder128_1;
 /// Default TLSH, using 128 buckets and a 1 byte checksum.
 pub type TlshDefault = Tlsh128_1;
+
+#[cfg(feature = "tlshx")]
+pub use crate::tlshx::{Tlshx, TlshxBuilder};
+
+/// Builder with 128 buckets and a 1 byte checksum.
+#[cfg(feature = "tlshx")]
+pub type TlshxBuilder128_1 = TlshxBuilder<128, 1, 32, 72, 50>;
+/// TLSH with 128 buckets and a 1 byte checksum.
+#[cfg(feature = "tlshx")]
+pub type Tlshx128_1 = Tlshx<1, 72, 32>;
+
+/// Default builder, using 128 buckets and a 1 byte checksum.
+#[cfg(feature = "tlshx")]
+pub type TlshxDefaultBuilder = TlshxBuilder128_1;
+/// Default TLSHX, using 128 buckets and a 1 byte checksum.
+#[cfg(feature = "tlshx")]
+pub type TlshxDefault = Tlshx128_1;

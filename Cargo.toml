@@ -13,9 +13,11 @@ categories = ["algorithms"]
 # Enable ability to compute diff score between two TLSH.
 # This is behind a feature flag as it adds a 64k static array to the binary.
 diff = []
+# Enable experimental extension of TLSH (tertiles)
+tlshx = []
 
 [dev-dependencies]
 glob = "0.3.0"
 
 [package.metadata.docs.rs]
-features = ["diff"]
+features = ["diff", "tlshx"]
