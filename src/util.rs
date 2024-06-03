@@ -79,7 +79,7 @@ pub fn hx_distance(x: &[u8], y: &[u8]) -> i32 {
             i32::from(TERNARY_DIFF_TABLE[usize::from(*a).min(242)][usize::from(*b).min(242)])
         })
         .sum();
-    (z * 4 + 665) / 1330
+    (z * 2 + 389) / 778
 }
 
 #[cfg(feature = "diff")]

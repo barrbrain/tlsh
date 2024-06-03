@@ -293,8 +293,8 @@ impl<const TLSH_CHECKSUM_LEN: usize, const TLSH_STRING_LEN_REQ: usize, const COD
     /// let tlsh2 = tlsh2::TlshxDefaultBuilder::build_from(data2)
     ///     .expect("should have generated a TLSHX");
     ///
-    /// assert_eq!(tlsh1.diff(&tlsh2, false), 232);
-    /// assert_eq!(tlsh1.diff(&tlsh2, true), 268);
+    /// assert_eq!(tlsh1.diff(&tlsh2, false), 207);
+    /// assert_eq!(tlsh1.diff(&tlsh2, true), 243);
     /// ```
     #[cfg(feature = "diff")]
     pub fn diff(&self, other: &Self, len_diff: bool) -> i32 {
