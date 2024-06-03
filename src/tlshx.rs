@@ -1,7 +1,7 @@
 use core::str::FromStr;
 
 use crate::pearson::{b_mapping, fast_b_mapping};
-use crate::quantile::get_quartiles;
+use crate::quantile::get_tertiles;
 use crate::util::{l_capturing, swap_byte};
 use crate::BUCKETS;
 
@@ -176,9 +176,9 @@ impl<
             return None;
         }
 
-        let (q1, q2, q3) = get_quartiles::<EFF_BUCKETS>(&self.a_bucket);
-        // issue #79 - divide by 0 if q3 == 0
-        if q3 == 0 {
+        let (q1, q2) = get_tertiles::<EFF_BUCKETS>(&self.a_bucket);
+        // issue #79 - divide by 0 if q2 == 0
+        if q2 == 0 {
             return None;
         }
 
@@ -186,40 +186,33 @@ impl<
         let nonzero = self
             .a_bucket
             .iter()
-            .take(CODE_SIZE * 4)
+            .take(CODE_SIZE * 5)
             .filter(|v| **v > 0)
             .count();
-        if EFF_BUCKETS == 48 {
-            if nonzero < 18 {
-                return None;
-            }
-        } else if nonzero <= 2 * CODE_SIZE {
+        // TODO: Special case EFF_BUCKETS == 48
+        if nonzero * 2 <= 5 * CODE_SIZE {
             return None;
         }
 
         let mut code: [u8; CODE_SIZE] = [0; CODE_SIZE];
-        for (i, slice) in self.a_bucket.chunks(4).take(CODE_SIZE).enumerate() {
+        for (i, slice) in self.a_bucket.chunks(5).take(CODE_SIZE).enumerate() {
             let mut h = 0_u8;
             for (j, k) in slice.iter().enumerate() {
-                if q3 < *k {
-                    h += 3 << (j * 2);
-                } else if q2 < *k {
-                    h += 2 << (j * 2);
+                if q2 < *k {
+                    h += 2 * 3u8.pow(j as u32);
                 } else if q1 < *k {
-                    h += 1 << (j * 2);
+                    h += 1 * 3u8.pow(j as u32);
                 }
             }
             code[i] = h;
         }
 
         let lvalue = l_capturing(self.data_len as u32);
-        let q1_ratio = (((((q1 * 100) as f32) / (q3 as f32)) as u32) % 16) as u8;
-        let q2_ratio = (((((q2 * 100) as f32) / (q3 as f32)) as u32) % 16) as u8;
+        let q1_ratio = (((((q1 * 100) as f32) / (q2 as f32)) as u32) % 16) as u8;
 
         Some(Tlshx {
             lvalue,
             q1_ratio,
-            q2_ratio,
             checksum: self.checksum,
             code,
         })
@@ -234,7 +227,6 @@ pub struct Tlshx<
 > {
     lvalue: u8,
     q1_ratio: u8,
-    q2_ratio: u8,
     checksum: [u8; TLSH_CHECKSUM_LEN],
     code: [u8; CODE_SIZE],
 }
@@ -254,7 +246,7 @@ impl<const TLSH_CHECKSUM_LEN: usize, const TLSH_STRING_LEN_REQ: usize, const COD
     ///     .expect("should have generated a TLSHX");
     /// assert_eq!(
     ///     tlsh.hash().as_slice(),
-    ///     b"TX2D900249414E0BD59A46503F3ADA802AE50825242B2590561CF690599112214C051556",
+    ///     b"TX2D9020092BA51B3F04A30015330A5200EC7F6C295154092A540057DC005A011B360001",
     /// );
     /// ```
     pub fn hash(&self) -> [u8; TLSH_STRING_LEN_REQ] {
@@ -269,7 +261,7 @@ impl<const TLSH_CHECKSUM_LEN: usize, const TLSH_STRING_LEN_REQ: usize, const COD
         }
         to_hex(&mut hash, &mut i, swap_byte(self.lvalue));
 
-        let qb = (self.q1_ratio << 4) | self.q2_ratio;
+        let qb = self.q1_ratio << 4;
         to_hex(&mut hash, &mut i, qb);
 
         for c in self.code.iter().rev() {
@@ -301,12 +293,12 @@ impl<const TLSH_CHECKSUM_LEN: usize, const TLSH_STRING_LEN_REQ: usize, const COD
     /// let tlsh2 = tlsh2::TlshxDefaultBuilder::build_from(data2)
     ///     .expect("should have generated a TLSHX");
     ///
-    /// assert_eq!(tlsh1.diff(&tlsh2, false), 244);
-    /// assert_eq!(tlsh1.diff(&tlsh2, true), 280);
+    /// assert_eq!(tlsh1.diff(&tlsh2, false), 232);
+    /// assert_eq!(tlsh1.diff(&tlsh2, true), 268);
     /// ```
     #[cfg(feature = "diff")]
     pub fn diff(&self, other: &Self, len_diff: bool) -> i32 {
-        use crate::util::{h_distance, mod_diff};
+        use crate::util::{hx_distance, mod_diff};
 
         const LENGTH_MULT: i32 = 12;
         const QRATIO_MULT: i32 = 12;
@@ -334,13 +326,6 @@ impl<const TLSH_CHECKSUM_LEN: usize, const TLSH_STRING_LEN_REQ: usize, const COD
             diff += (q1diff - 1) * QRATIO_MULT;
         }
 
-        let q2diff = mod_diff(self.q2_ratio, other.q2_ratio, RANGE_QRATIO);
-        if q2diff <= 1 {
-            diff += q2diff;
-        } else {
-            diff += (q2diff - 1) * QRATIO_MULT;
-        }
-
         for (a, b) in self.checksum.iter().zip(other.checksum.iter()) {
             if a != b {
                 diff += 1;
@@ -348,7 +333,7 @@ impl<const TLSH_CHECKSUM_LEN: usize, const TLSH_STRING_LEN_REQ: usize, const COD
             }
         }
 
-        diff += h_distance(&self.code, &other.code);
+        diff += hx_distance(&self.code, &other.code);
 
         diff
     }
@@ -368,17 +353,18 @@ impl<const TLSH_CHECKSUM_LEN: usize, const TLSH_STRING_LEN_REQ: usize, const COD
         let lvalue = swap_byte(from_hex(s, &mut i)?);
         let qb = from_hex(s, &mut i)?;
         let q1_ratio = qb >> 4;
-        let q2_ratio = qb & 0x0F;
 
         let mut code = [0; CODE_SIZE];
         for c in code.iter_mut().rev() {
             *c = from_hex(s, &mut i)?;
+            if *c > 242 {
+                return None;
+            }
         }
 
         Some(Self {
             lvalue,
             q1_ratio,
-            q2_ratio,
             checksum,
             code,
         })
