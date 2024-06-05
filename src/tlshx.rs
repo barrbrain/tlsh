@@ -280,6 +280,12 @@ impl<
         &mut self.0[TLSH_CHECKSUM_LEN + 2..]
     }
 
+    /// Binary representation of a TLSHX.
+    #[inline(always)]
+    pub fn binary(&self) -> [u8; TLSH_BINARY_LEN_REQ] {
+        self.0
+    }
+
     /// Compute the hash of a TLSHX.
     ///
     /// The hash is always prefixed by `TX` (`showvers=X` in the original TLSH version).
@@ -382,6 +388,12 @@ impl<
         diff += hx_distance(&self.code(), &other.code());
 
         diff
+    }
+
+    /// Create a new TLSHX from its binary representation.
+    #[inline(always)]
+    pub fn new(binary: &[u8; TLSH_BINARY_LEN_REQ]) -> Self {
+        Self(*binary)
     }
 
     fn from_hash(s: &[u8]) -> Option<Self> {
