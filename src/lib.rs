@@ -87,17 +87,17 @@ pub use crate::tlshx::{Tlshx, TlshxBuilder};
 
 /// Builder with 255 buckets and a 1 byte checksum.
 #[cfg(feature = "tlshx")]
-pub type TlshxBuilder255_1 = TlshxBuilder<255, 1, 51, 110, 50>;
+pub type TlshxBuilder255_1 = TlshxBuilder<255, 1, 51, 110, 54, 50>;
 /// TLSH with 255 buckets and a 1 byte checksum.
 #[cfg(feature = "tlshx")]
-pub type Tlshx255_1 = Tlshx<1, 110, 51>;
+pub type Tlshx255_1 = Tlshx<1, 110, 54, 51>;
 
 /// Builder with 160 buckets and a 1 byte checksum.
 #[cfg(feature = "tlshx")]
-pub type TlshxBuilder160_1 = TlshxBuilder<160, 1, 32, 72, 50>;
+pub type TlshxBuilder160_1 = TlshxBuilder<160, 1, 32, 72, 35, 50>;
 /// TLSH with 160 buckets and a 1 byte checksum.
 #[cfg(feature = "tlshx")]
-pub type Tlshx160_1 = Tlshx<1, 72, 32>;
+pub type Tlshx160_1 = Tlshx<1, 72, 35, 32>;
 
 /// Default builder, using 160 buckets and a 1 byte checksum.
 #[cfg(feature = "tlshx")]

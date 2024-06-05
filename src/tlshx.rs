@@ -18,6 +18,7 @@ pub struct TlshxBuilder<
     const TLSH_CHECKSUM_LEN: usize,
     const CODE_SIZE: usize,
     const TLSH_STRING_LEN_REQ: usize,
+    const TLSH_BINARY_LEN_REQ: usize,
     const MIN_DATA_LENGTH: usize,
 > {
     a_bucket: [u32; BUCKETS],
@@ -31,6 +32,7 @@ impl<
         const TLSH_CHECKSUM_LEN: usize,
         const CODE_SIZE: usize,
         const TLSH_STRING_LEN_REQ: usize,
+        const TLSH_BINARY_LEN_REQ: usize,
         const MIN_DATA_LENGTH: usize,
     > Default
     for TlshxBuilder<
@@ -38,6 +40,7 @@ impl<
         TLSH_CHECKSUM_LEN,
         CODE_SIZE,
         TLSH_STRING_LEN_REQ,
+        TLSH_BINARY_LEN_REQ,
         MIN_DATA_LENGTH,
     >
 {
@@ -51,9 +54,17 @@ impl<
         const TLSH_CHECKSUM_LEN: usize,
         const CODE_SIZE: usize,
         const TLSH_STRING_LEN_REQ: usize,
+        const TLSH_BINARY_LEN_REQ: usize,
         const MIN_DATA_LENGTH: usize,
     >
-    TlshxBuilder<EFF_BUCKETS, TLSH_CHECKSUM_LEN, CODE_SIZE, TLSH_STRING_LEN_REQ, MIN_DATA_LENGTH>
+    TlshxBuilder<
+        EFF_BUCKETS,
+        TLSH_CHECKSUM_LEN,
+        CODE_SIZE,
+        TLSH_STRING_LEN_REQ,
+        TLSH_BINARY_LEN_REQ,
+        MIN_DATA_LENGTH,
+    >
 {
     /// Create a new TLSHX builder.
     pub fn new() -> Self {
@@ -80,7 +91,7 @@ impl<
     /// ```
     pub fn build_from(
         data: &[u8],
-    ) -> Option<Tlshx<TLSH_CHECKSUM_LEN, TLSH_STRING_LEN_REQ, CODE_SIZE>> {
+    ) -> Option<Tlshx<TLSH_CHECKSUM_LEN, TLSH_STRING_LEN_REQ, TLSH_BINARY_LEN_REQ, CODE_SIZE>> {
         let mut builder = Self::new();
         builder.update(data);
         builder.build()
@@ -171,7 +182,9 @@ impl<
     }
 
     /// Generate a [`Tlshx`] object, or None if the object is not valid.
-    pub fn build(&self) -> Option<Tlshx<TLSH_CHECKSUM_LEN, TLSH_STRING_LEN_REQ, CODE_SIZE>> {
+    pub fn build(
+        &self,
+    ) -> Option<Tlshx<TLSH_CHECKSUM_LEN, TLSH_STRING_LEN_REQ, TLSH_BINARY_LEN_REQ, CODE_SIZE>> {
         if self.data_len < MIN_DATA_LENGTH {
             return None;
         }
@@ -194,7 +207,15 @@ impl<
             return None;
         }
 
-        let mut code: [u8; CODE_SIZE] = [0; CODE_SIZE];
+        let mut tlshx = Tlshx([0; TLSH_BINARY_LEN_REQ]);
+
+        *tlshx.lvalue_mut() = l_capturing(self.data_len as u32);
+        *tlshx.q1_ratio_mut() = (((((q1 * 100) as f32) / (q2 as f32)) as u32) % 16) as u8;
+
+        tlshx
+            .checksum_mut()
+            .copy_from_slice(self.checksum.as_slice());
+
         for (i, slice) in self.a_bucket.chunks(5).take(CODE_SIZE).enumerate() {
             let mut h = 0_u8;
             for (j, k) in slice.iter().enumerate() {
@@ -204,36 +225,61 @@ impl<
                     h += 1 * 3u8.pow(j as u32);
                 }
             }
-            code[i] = h;
+            tlshx.code_mut()[i] = h;
         }
 
-        let lvalue = l_capturing(self.data_len as u32);
-        let q1_ratio = (((((q1 * 100) as f32) / (q2 as f32)) as u32) % 16) as u8;
-
-        Some(Tlshx {
-            lvalue,
-            q1_ratio,
-            checksum: self.checksum,
-            code,
-        })
+        Some(tlshx)
     }
 }
 
 /// TLSHX object, from which a hash or a distance can be computed.
+#[repr(transparent)]
 pub struct Tlshx<
     const TLSH_CHECKSUM_LEN: usize,
     const TLSH_STRING_LEN_REQ: usize,
+    const TLSH_BINARY_LEN_REQ: usize,
     const CODE_SIZE: usize,
-> {
-    lvalue: u8,
-    q1_ratio: u8,
-    checksum: [u8; TLSH_CHECKSUM_LEN],
-    code: [u8; CODE_SIZE],
-}
+>([u8; TLSH_BINARY_LEN_REQ]);
 
-impl<const TLSH_CHECKSUM_LEN: usize, const TLSH_STRING_LEN_REQ: usize, const CODE_SIZE: usize>
-    Tlshx<TLSH_CHECKSUM_LEN, TLSH_STRING_LEN_REQ, CODE_SIZE>
+impl<
+        const TLSH_CHECKSUM_LEN: usize,
+        const TLSH_STRING_LEN_REQ: usize,
+        const TLSH_BINARY_LEN_REQ: usize,
+        const CODE_SIZE: usize,
+    > Tlshx<TLSH_CHECKSUM_LEN, TLSH_STRING_LEN_REQ, TLSH_BINARY_LEN_REQ, CODE_SIZE>
 {
+    fn lvalue(&self) -> u8 {
+        self.0[0]
+    }
+
+    fn q1_ratio(&self) -> u8 {
+        self.0[1]
+    }
+
+    fn checksum(&self) -> &[u8] {
+        &self.0[2..][..TLSH_CHECKSUM_LEN]
+    }
+
+    fn code(&self) -> &[u8] {
+        &self.0[TLSH_CHECKSUM_LEN + 2..]
+    }
+
+    fn lvalue_mut(&mut self) -> &mut u8 {
+        &mut self.0[0]
+    }
+
+    fn q1_ratio_mut(&mut self) -> &mut u8 {
+        &mut self.0[1]
+    }
+
+    fn checksum_mut(&mut self) -> &mut [u8] {
+        &mut self.0[2..][..TLSH_CHECKSUM_LEN]
+    }
+
+    fn code_mut(&mut self) -> &mut [u8] {
+        &mut self.0[TLSH_CHECKSUM_LEN + 2..]
+    }
+
     /// Compute the hash of a TLSHX.
     ///
     /// The hash is always prefixed by `TX` (`showvers=X` in the original TLSH version).
@@ -256,15 +302,15 @@ impl<const TLSH_CHECKSUM_LEN: usize, const TLSH_STRING_LEN_REQ: usize, const COD
         hash[1] = b'X';
         let mut i = 2;
 
-        for k in &self.checksum {
+        for k in self.checksum() {
             to_hex(&mut hash, &mut i, swap_byte(*k));
         }
-        to_hex(&mut hash, &mut i, swap_byte(self.lvalue));
+        to_hex(&mut hash, &mut i, swap_byte(self.lvalue()));
 
-        let qb = self.q1_ratio << 4;
+        let qb = self.q1_ratio() << 4;
         to_hex(&mut hash, &mut i, qb);
 
-        for c in self.code.iter().rev() {
+        for c in self.code().iter().rev() {
             to_hex(&mut hash, &mut i, *c);
         }
 
@@ -307,7 +353,7 @@ impl<const TLSH_CHECKSUM_LEN: usize, const TLSH_STRING_LEN_REQ: usize, const COD
 
         let mut diff;
         if len_diff {
-            let ldiff = mod_diff(self.lvalue, other.lvalue, RANGE_LVALUE);
+            let ldiff = mod_diff(self.lvalue(), other.lvalue(), RANGE_LVALUE);
             if ldiff == 0 {
                 diff = 0;
             } else if ldiff == 1 {
@@ -319,21 +365,21 @@ impl<const TLSH_CHECKSUM_LEN: usize, const TLSH_STRING_LEN_REQ: usize, const COD
             diff = 0;
         }
 
-        let q1diff = mod_diff(self.q1_ratio, other.q1_ratio, RANGE_QRATIO);
+        let q1diff = mod_diff(self.q1_ratio(), other.q1_ratio(), RANGE_QRATIO);
         if q1diff <= 1 {
             diff += q1diff;
         } else {
             diff += (q1diff - 1) * QRATIO_MULT;
         }
 
-        for (a, b) in self.checksum.iter().zip(other.checksum.iter()) {
+        for (a, b) in self.checksum().iter().zip(other.checksum().iter()) {
             if a != b {
                 diff += 1;
                 break;
             }
         }
 
-        diff += hx_distance(&self.code, &other.code);
+        diff += hx_distance(&self.code(), &other.code());
 
         diff
     }
@@ -345,37 +391,35 @@ impl<const TLSH_CHECKSUM_LEN: usize, const TLSH_STRING_LEN_REQ: usize, const COD
 
         let mut i = 2;
 
-        let mut checksum = [0; TLSH_CHECKSUM_LEN];
-        for k in &mut checksum {
+        let mut tlshx = Tlshx([0; TLSH_BINARY_LEN_REQ]);
+        for k in tlshx.checksum_mut() {
             *k = swap_byte(from_hex(s, &mut i)?);
         }
 
-        let lvalue = swap_byte(from_hex(s, &mut i)?);
+        *tlshx.lvalue_mut() = swap_byte(from_hex(s, &mut i)?);
         let qb = from_hex(s, &mut i)?;
-        let q1_ratio = qb >> 4;
+        *tlshx.q1_ratio_mut() = qb >> 4;
 
-        let mut code = [0; CODE_SIZE];
-        for c in code.iter_mut().rev() {
+        for c in tlshx.code_mut().iter_mut().rev() {
             *c = from_hex(s, &mut i)?;
             if *c > 242 {
                 return None;
             }
         }
 
-        Some(Self {
-            lvalue,
-            q1_ratio,
-            checksum,
-            code,
-        })
+        Some(tlshx)
     }
 }
 
 use crate::tlsh::{from_hex, to_hex, ParseError};
 
 /// Parse a hash string and build the corresponding `Tlshx` object.
-impl<const TLSH_CHECKSUM_LEN: usize, const TLSH_STRING_LEN_REQ: usize, const CODE_SIZE: usize>
-    FromStr for Tlshx<TLSH_CHECKSUM_LEN, TLSH_STRING_LEN_REQ, CODE_SIZE>
+impl<
+        const TLSH_CHECKSUM_LEN: usize,
+        const TLSH_STRING_LEN_REQ: usize,
+        const TLSH_BINARY_LEN_REQ: usize,
+        const CODE_SIZE: usize,
+    > FromStr for Tlshx<TLSH_CHECKSUM_LEN, TLSH_STRING_LEN_REQ, TLSH_BINARY_LEN_REQ, CODE_SIZE>
 {
     type Err = ParseError;
 
