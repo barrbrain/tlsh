@@ -50,6 +50,12 @@ do_hash_test!(
     tlsh2::Tlsh48_1
 );
 do_hash_test!(
+    test_hash_48_3,
+    "48.3",
+    tlsh2::TlshBuilder48_3,
+    tlsh2::Tlsh48_3
+);
+do_hash_test!(
     test_hash_128_1,
     "128.1",
     tlsh2::TlshBuilder128_1,

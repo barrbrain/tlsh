@@ -65,6 +65,11 @@ pub type TlshBuilder48_1 = TlshBuilder<48, 1, 12, 32, 10>;
 /// TLSh with 48 buckets and a 1 byte checksum.
 pub type Tlsh48_1 = Tlsh<1, 32, 12>;
 
+/// NON-NORMATIVE: Builder with 48 buckets and a 3 byte checksum.
+pub type TlshBuilder48_3 = TlshBuilder<48, 3, 12, 36, 10>;
+/// NON-NORMATIVE: TLSH with 48 buckets and a 3 byte checksum.
+pub type Tlsh48_3 = Tlsh<3, 36, 12>;
+
 /// Builder with 256 buckets and a 3 bytes checksum.
 pub type TlshBuilder256_3 = TlshBuilder<256, 3, 64, 140, 50>;
 /// TLSH with 256 buckets and a 3 bytes checksum.

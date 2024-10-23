@@ -73,6 +73,13 @@ do_diff_test!(
     tlsh2::TlshBuilder48_1,
     false
 );
+do_diff_test!(test_diff_48_3_len, "48.3.len", tlsh2::TlshBuilder48_3, true);
+do_diff_test!(
+    test_diff_48_3_xlen,
+    "48.3.xlen",
+    tlsh2::TlshBuilder48_3,
+    false
+);
 do_diff_test!(
     test_diff_128_1_len,
     "128.1.len",

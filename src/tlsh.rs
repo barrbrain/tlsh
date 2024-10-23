@@ -92,13 +92,15 @@ impl<
             let [b_4, b_3, b_2, b_1] = self.slide_window;
 
             if fed_len >= 4 {
-                for k in 0..TLSH_CHECKSUM_LEN {
-                    if k == 0 {
-                        self.checksum[k] =
-                            fast_b_mapping::<EFF_BUCKETS>(1, b_0, b_1, self.checksum[k]);
-                    } else {
-                        self.checksum[k] =
-                            b_mapping(self.checksum[k - 1], b_0, b_1, self.checksum[k]);
+                if EFF_BUCKETS != 48 || TLSH_CHECKSUM_LEN != 3 {
+                    for k in 0..TLSH_CHECKSUM_LEN {
+                        if k == 0 {
+                            self.checksum[k] =
+                                fast_b_mapping::<EFF_BUCKETS>(1, b_0, b_1, self.checksum[k]);
+                        } else {
+                            self.checksum[k] =
+                                b_mapping(self.checksum[k - 1], b_0, b_1, self.checksum[k]);
+                        }
                     }
                 }
 
@@ -164,6 +166,13 @@ impl<
             code[i] = h;
         }
 
+        let mut checksum: [u8; TLSH_CHECKSUM_LEN] = self.checksum;
+        if EFF_BUCKETS == 48 && TLSH_CHECKSUM_LEN == 3 {
+            for (i, b) in code.chunks(4).take(TLSH_CHECKSUM_LEN).enumerate() {
+                checksum[i] = build_prefix(&b);
+            }
+        }
+
         let lvalue = l_capturing(self.data_len as u32);
         let q1_ratio = (((((q1 * 100) as f32) / (q3 as f32)) as u32) % 16) as u8;
         let q2_ratio = (((((q2 * 100) as f32) / (q3 as f32)) as u32) % 16) as u8;
@@ -172,7 +181,7 @@ impl<
             lvalue,
             q1_ratio,
             q2_ratio,
-            checksum: self.checksum,
+            checksum,
             code,
         })
     }
@@ -350,6 +359,17 @@ impl<const TLSH_CHECKSUM_LEN: usize, const TLSH_STRING_LEN_REQ: usize, const COD
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::from_hash(s.as_bytes()).ok_or(ParseError)
     }
+}
+
+const HEX_QUADS_ARE_3: [u8; 16] = [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 2, 2, 3];
+
+fn build_prefix(tlsh: &[u8]) -> u8 {
+    let mut r = 0;
+    for b in tlsh.iter().flat_map(|hh| [hh >> 4, hh & 15]) {
+        r <<= 1;
+        r += u8::from(HEX_QUADS_ARE_3[b as usize] > 0);
+    }
+    r
 }
 
 fn from_hex(s: &[u8], i: &mut usize) -> Option<u8> {
